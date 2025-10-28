@@ -1,11 +1,12 @@
 "use client"
-import React, { memo, useEffect, useMemo, useState } from 'react'
+import React, { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import type { Node, Edge } from '../../app/page'
 
 type Props = { nodes: Node[]; edges: Edge[]; finalPath: string[] }
 
 function GraphCanvas({ nodes, edges, finalPath }: Props) {
   const [packetIndex, setPacketIndex] = useState(0)
+  const [replayTick, setReplayTick] = useState(0)
 
   useEffect(() => {
     if (!finalPath || finalPath.length === 0) return
@@ -20,7 +21,7 @@ function GraphCanvas({ nodes, edges, finalPath }: Props) {
       })
     }, 700)
     return () => clearInterval(id)
-  }, [finalPath])
+  }, [finalPath, replayTick])
 
   const nodeMap = useMemo(() => {
     return Object.fromEntries(nodes.map(n => [n.id, n])) as Record<string, Node>
@@ -38,8 +39,23 @@ function GraphCanvas({ nodes, edges, finalPath }: Props) {
     return set
   }, [finalPath])
 
+  const handleReplay = useCallback(() => {
+    if (!finalPath || finalPath.length < 2) return
+    setReplayTick(tick => tick + 1)
+  }, [finalPath])
+
   return (
     <div className="relative h-full min-h-[24rem] sm:min-h-[28rem] lg:min-h-[34rem]">
+      {finalPath && finalPath.length > 1 && (
+        <button
+          type="button"
+          onClick={handleReplay}
+          className="absolute right-4 top-4 z-10 rounded-full px-4 py-2 text-xs font-semibold text-slate-900 shadow-lg transition-transform hover:scale-[1.03]"
+          style={{ background: 'linear-gradient(135deg, rgba(252,211,77,0.95), rgba(248,113,113,0.95))' }}
+        >
+          Replay Animation
+        </button>
+      )}
       <svg
         className="w-full h-full max-w-full"
         viewBox="0 0 900 520"
