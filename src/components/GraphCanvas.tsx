@@ -1,9 +1,10 @@
 "use client"
-import React, { useEffect, useState } from 'react'
+import React, { memo, useEffect, useMemo, useState } from 'react'
 import type { Node, Edge } from '../../app/page'
 
-export default function GraphCanvas({ nodes, edges, finalPath }:
-  { nodes: Node[]; edges: Edge[]; finalPath: string[] }) {
+type Props = { nodes: Node[]; edges: Edge[]; finalPath: string[] }
+
+function GraphCanvas({ nodes, edges, finalPath }: Props) {
   const [packetIndex, setPacketIndex] = useState(0)
 
   useEffect(() => {
@@ -21,10 +22,24 @@ export default function GraphCanvas({ nodes, edges, finalPath }:
     return () => clearInterval(id)
   }, [finalPath])
 
-  const nodeMap = Object.fromEntries(nodes.map(n => [n.id, n])) as Record<string, Node>
+  const nodeMap = useMemo(() => {
+    return Object.fromEntries(nodes.map(n => [n.id, n])) as Record<string, Node>
+  }, [nodes])
+
+  const highlightedEdges = useMemo(() => {
+    const set = new Set<string>()
+    if (!finalPath || finalPath.length < 2) return set
+    for (let i = 0; i < finalPath.length - 1; i++) {
+      const a = finalPath[i]
+      const b = finalPath[i + 1]
+      set.add(`${a}|${b}`)
+      set.add(`${b}|${a}`)
+    }
+    return set
+  }, [finalPath])
 
   return (
-  <div className="relative h-full min-h-[24rem] sm:min-h-[28rem] lg:min-h-[34rem]">
+    <div className="relative h-full min-h-[24rem] sm:min-h-[28rem] lg:min-h-[34rem]">
       <svg
         className="w-full h-full max-w-full"
         viewBox="0 0 900 520"
@@ -48,7 +63,7 @@ export default function GraphCanvas({ nodes, edges, finalPath }:
           if (!a || !b) return null
           const midX = (a.x + b.x) / 2
           const midY = (a.y + b.y) / 2
-          const highlighted = finalPath && finalPath.length > 0 && finalPath.includes(e.source) && finalPath.includes(e.target) && Math.abs(finalPath.indexOf(e.source) - finalPath.indexOf(e.target)) === 1
+          const highlighted = highlightedEdges.has(`${e.source}|${e.target}`)
           return (
             <g key={i}>
               <line
@@ -73,7 +88,7 @@ export default function GraphCanvas({ nodes, edges, finalPath }:
           </g>
         ))}
 
-        {/* packet indicator - place on node according to packetIndex */}
+        {/* packet indicator */}
         {finalPath && finalPath.length > 0 && (() => {
           const id = finalPath[Math.min(packetIndex, finalPath.length - 1)]
           const pos = nodeMap[id]
@@ -84,3 +99,5 @@ export default function GraphCanvas({ nodes, edges, finalPath }:
     </div>
   )
 }
+
+export default memo(GraphCanvas)

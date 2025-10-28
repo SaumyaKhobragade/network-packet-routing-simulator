@@ -1,9 +1,10 @@
 ﻿"use client"
-import React, { useEffect } from "react"
+import React, { memo, useEffect, useMemo } from "react"
 
 export type TraceEntry = {
   step: string
   dist: Record<string, number>
+  edge?: [string, string]
 }
 
 type Props = {
@@ -13,7 +14,7 @@ type Props = {
   finalPath: string[]
 }
 
-export default function AlgorithmVisualizer({ isOpen, onClose, trace, finalPath }: Props) {
+function AlgorithmVisualizer({ isOpen, onClose, trace, finalPath }: Props) {
   useEffect(() => {
     if (!isOpen) return
 
@@ -24,6 +25,8 @@ export default function AlgorithmVisualizer({ isOpen, onClose, trace, finalPath 
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
   }, [isOpen, onClose])
+
+  const finalPathLabel = useMemo(() => (finalPath.length ? finalPath.join(" -> ") : "—"), [finalPath])
 
   if (!isOpen) return null
 
@@ -53,7 +56,7 @@ export default function AlgorithmVisualizer({ isOpen, onClose, trace, finalPath 
           <div className="mb-5">
             <div className="text-xs uppercase tracking-widest text-slate-300/80 mb-2">Final Path</div>
             <div className="text-xl font-semibold text-lime-300">
-              {finalPath.length ? finalPath.join(" -> ") : "—"}
+              {finalPathLabel}
             </div>
           </div>
 
@@ -77,3 +80,5 @@ export default function AlgorithmVisualizer({ isOpen, onClose, trace, finalPath 
     </div>
   )
 }
+
+export default memo(AlgorithmVisualizer)

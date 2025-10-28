@@ -1,5 +1,5 @@
 ﻿"use client"
-import React, { useState } from "react"
+import React, { useCallback, useMemo, useState } from "react"
 import Topbar from "../src/components/Topbar"
 import ControlsPanel from "../src/components/ControlsPanel"
 import GraphCanvas from "../src/components/GraphCanvas"
@@ -25,28 +25,129 @@ export default function Page() {
   const [finalPath, setFinalPath] = useState<string[]>([])
   const [showVisualizer, setShowVisualizer] = useState(false)
 
-  function addNode() {
-    const id = `R${nodes.length + 1}`
-    const x = 120 + Math.random() * 640
-    const y = 80 + Math.random() * 360
-    setNodes(prev => [...prev, { id, x, y }])
-  }
+  const addNode = useCallback(() => {
+    setNodes(prev => {
+      const id = `R${prev.length + 1}`
+      const x = 120 + Math.random() * 640
+      const y = 80 + Math.random() * 360
+      return [...prev, { id, x, y }]
+    })
+  }, [])
 
-  function addEdge(source: string, target: string, weight: number) {
+  const addEdge = useCallback((source: string, target: string, weight: number) => {
     setEdges(prev => [...prev, { source, target, weight }])
-  }
+  }, [])
 
-  function runSimulation(startId: string, endId: string) {
-    const graph = { nodes: nodes.map(node => ({ id: node.id })), edges }
-    const result: RunResult =
-      algorithm === "dijkstra"
-        ? runDijkstra(graph, startId, endId)
-        : runBellmanFord(graph, startId, endId)
+  const resetNetwork = useCallback(() => {
+    setNodes([])
+    setEdges([])
+    setTrace([])
+    setFinalPath([])
+    setShowVisualizer(false)
+  }, [])
 
-    setTrace(result.trace)
-    setFinalPath(result.path)
-    setShowVisualizer(true)
-  }
+  const loadDijkstraScenario = useCallback(() => {
+    const scenarioNodes: Node[] = [
+      { id: "R1", x: 120, y: 80 },
+      { id: "R2", x: 360, y: 70 },
+      { id: "R3", x: 620, y: 110 },
+      { id: "R4", x: 820, y: 200 },
+      { id: "R5", x: 700, y: 320 },
+      { id: "R6", x: 460, y: 300 },
+      { id: "R7", x: 240, y: 260 },
+      { id: "R8", x: 120, y: 380 },
+      { id: "R9", x: 360, y: 420 },
+      { id: "R10", x: 600, y: 420 },
+    ]
+
+    const scenarioEdges: Edge[] = [
+      { source: "R1", target: "R2", weight: 4 },
+      { source: "R1", target: "R7", weight: 6 },
+      { source: "R2", target: "R3", weight: 5 },
+      { source: "R2", target: "R7", weight: 3 },
+      { source: "R2", target: "R5", weight: 8 },
+      { source: "R3", target: "R4", weight: 4 },
+      { source: "R3", target: "R6", weight: 7 },
+      { source: "R3", target: "R5", weight: 6 },
+      { source: "R4", target: "R5", weight: 3 },
+      { source: "R4", target: "R10", weight: 9 },
+      { source: "R5", target: "R6", weight: 2 },
+      { source: "R5", target: "R10", weight: 5 },
+      { source: "R6", target: "R7", weight: 5 },
+      { source: "R6", target: "R9", weight: 4 },
+      { source: "R7", target: "R8", weight: 3 },
+      { source: "R7", target: "R9", weight: 6 },
+      { source: "R8", target: "R9", weight: 4 },
+      { source: "R9", target: "R10", weight: 2 },
+    ]
+
+    setAlgorithm("dijkstra")
+    setNodes(scenarioNodes)
+    setEdges(scenarioEdges)
+    setTrace([])
+    setFinalPath([])
+    setShowVisualizer(false)
+  }, [])
+
+  const loadBellmanScenario = useCallback(() => {
+    const scenarioNodes: Node[] = [
+      { id: "R1", x: 140, y: 90 },
+      { id: "R2", x: 320, y: 80 },
+      { id: "R3", x: 520, y: 120 },
+      { id: "R4", x: 380, y: 240 },
+      { id: "R5", x: 560, y: 260 },
+      { id: "R6", x: 720, y: 190 },
+      { id: "R7", x: 420, y: 380 },
+      { id: "R8", x: 620, y: 400 },
+    ]
+
+    const scenarioEdges: Edge[] = [
+      { source: "R1", target: "R2", weight: 6 },
+      { source: "R1", target: "R3", weight: 5 },
+      { source: "R1", target: "R6", weight: 8 },
+      { source: "R2", target: "R4", weight: 1 },
+      { source: "R2", target: "R5", weight: -2 },
+      { source: "R2", target: "R6", weight: 2 },
+      { source: "R3", target: "R5", weight: 3 },
+      { source: "R3", target: "R6", weight: 4 },
+      { source: "R4", target: "R7", weight: 2 },
+      { source: "R5", target: "R4", weight: 2 },
+      { source: "R5", target: "R7", weight: 3 },
+      { source: "R5", target: "R8", weight: -4 },
+      { source: "R6", target: "R5", weight: 1 },
+      { source: "R6", target: "R8", weight: 5 },
+      { source: "R7", target: "R8", weight: 2 },
+    ]
+
+    setAlgorithm("bellman")
+    setNodes(scenarioNodes)
+    setEdges(scenarioEdges)
+    setTrace([])
+    setFinalPath([])
+    setShowVisualizer(false)
+  }, [])
+
+  const graph = useMemo(
+    () => ({ nodes: nodes.map(node => ({ id: node.id })), edges }),
+    [nodes, edges]
+  )
+
+  const runSimulation = useCallback(
+    (startId: string, endId: string) => {
+      const result: RunResult =
+        algorithm === "dijkstra"
+          ? runDijkstra(graph, startId, endId)
+          : runBellmanFord(graph, startId, endId)
+
+      setTrace(result.trace)
+      setFinalPath(result.path)
+      setShowVisualizer(true)
+    },
+    [algorithm, graph]
+  )
+
+  const handleShowVisualizer = useCallback(() => setShowVisualizer(true), [])
+  const handleCloseVisualizer = useCallback(() => setShowVisualizer(false), [])
 
   return (
     <div className="flex-1 flex flex-col h-full text-slate-100">
@@ -60,7 +161,10 @@ export default function Page() {
             addNode={addNode}
             addEdge={addEdge}
             runSimulation={runSimulation}
-            onShowVisualizer={() => setShowVisualizer(true)}
+            resetNetwork={resetNetwork}
+            loadDijkstraScenario={loadDijkstraScenario}
+            loadBellmanScenario={loadBellmanScenario}
+            onShowVisualizer={handleShowVisualizer}
           />
         </div>
 
@@ -73,7 +177,7 @@ export default function Page() {
 
       <AlgorithmVisualizer
         isOpen={showVisualizer}
-        onClose={() => setShowVisualizer(false)}
+        onClose={handleCloseVisualizer}
         trace={trace}
         finalPath={finalPath}
       />

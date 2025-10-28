@@ -1,8 +1,9 @@
 "use client"
-import React from 'react'
+import React, { Dispatch, SetStateAction, memo } from 'react'
 
-export default function Topbar({ algorithm, setAlgorithm }:
-  { algorithm: 'dijkstra'|'bellman'; setAlgorithm: (s: 'dijkstra'|'bellman') => void }) {
+type Props = { algorithm: 'dijkstra'|'bellman'; setAlgorithm: Dispatch<SetStateAction<'dijkstra'|'bellman'>> }
+
+function Topbar({ algorithm, setAlgorithm }: Props) {
   return (
     <header className="bg-gradient-to-r from-[#25331d]/80 via-[#1b2a3b]/80 to-[#0f1a2c]/80 border-b border-white/10 px-4 sm:px-6 py-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between backdrop-blur-xl shadow-lg">
       <div className="text-lg sm:text-xl font-semibold text-slate-100 tracking-wide text-center md:text-left">
@@ -22,3 +23,5 @@ export default function Topbar({ algorithm, setAlgorithm }:
     </header>
   )
 }
+
+export default memo(Topbar)
