@@ -132,6 +132,19 @@ export default function Page() {
     [nodes, edges]
   )
 
+  const handleNodePositionChange = useCallback((id: string, position: { x: number; y: number }) => {
+    setNodes(prev => {
+      let changed = false
+      const next = prev.map(node => {
+        if (node.id !== id) return node
+        if (node.x === position.x && node.y === position.y) return node
+        changed = true
+        return { ...node, x: position.x, y: position.y }
+      })
+      return changed ? next : prev
+    })
+  }, [])
+
   const runSimulation = useCallback(
     (startId: string, endId: string) => {
       const result: RunResult =
@@ -170,7 +183,12 @@ export default function Page() {
 
         <div className="flex-1 flex flex-col gap-6">
           <div className="flex-1 rounded-3xl border border-white/10 bg-slate-900/50 shadow-2xl p-3 sm:p-4 backdrop-blur-xl min-h-[24rem] sm:min-h-[28rem] lg:min-h-[34rem]">
-            <GraphCanvas nodes={nodes} edges={edges} finalPath={finalPath} />
+            <GraphCanvas
+              nodes={nodes}
+              edges={edges}
+              finalPath={finalPath}
+              onNodePositionChange={handleNodePositionChange}
+            />
           </div>
         </div>
       </div>

@@ -1,12 +1,24 @@
 "use client"
-import React, { memo, useCallback, useEffect, useMemo, useState } from 'react'
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Node, Edge } from '../../app/page'
 
-type Props = { nodes: Node[]; edges: Edge[]; finalPath: string[] }
+type Props = {
+  nodes: Node[]
+  edges: Edge[]
+  finalPath: string[]
+  onNodePositionChange?: (id: string, position: { x: number; y: number }) => void
+}
 
-function GraphCanvas({ nodes, edges, finalPath }: Props) {
+function GraphCanvas({ nodes, edges, finalPath, onNodePositionChange }: Props) {
   const [packetIndex, setPacketIndex] = useState(0)
   const [replayTick, setReplayTick] = useState(0)
+  const svgRef = useRef<SVGSVGElement | null>(null)
+  const [draggedNode, setDraggedNode] = useState<{
+    id: string
+    offsetX: number
+    offsetY: number
+    pointerId: number
+  } | null>(null)
 
   useEffect(() => {
     if (!finalPath || finalPath.length === 0) return
@@ -27,6 +39,18 @@ function GraphCanvas({ nodes, edges, finalPath }: Props) {
     return Object.fromEntries(nodes.map(n => [n.id, n])) as Record<string, Node>
   }, [nodes])
 
+  const getSvgCoordinates = useCallback((clientX: number, clientY: number) => {
+    const svg = svgRef.current
+    if (!svg) return null
+    const point = svg.createSVGPoint()
+    point.x = clientX
+    point.y = clientY
+    const ctm = svg.getScreenCTM()
+    if (!ctm) return null
+    const transformed = point.matrixTransform(ctm.inverse())
+    return { x: transformed.x, y: transformed.y }
+  }, [])
+
   const highlightedEdges = useMemo(() => {
     const set = new Set<string>()
     if (!finalPath || finalPath.length < 2) return set
@@ -44,6 +68,53 @@ function GraphCanvas({ nodes, edges, finalPath }: Props) {
     setReplayTick(tick => tick + 1)
   }, [finalPath])
 
+  const handlePointerDown = useCallback((event: React.PointerEvent<SVGGElement>, node: Node) => {
+    const coords = getSvgCoordinates(event.clientX, event.clientY)
+    if (!coords) return
+    event.preventDefault()
+    event.stopPropagation()
+    svgRef.current?.setPointerCapture?.(event.pointerId)
+    setDraggedNode({
+      id: node.id,
+      offsetX: coords.x - node.x,
+      offsetY: coords.y - node.y,
+      pointerId: event.pointerId,
+    })
+  }, [getSvgCoordinates])
+
+  const finishDrag = useCallback((pointerId?: number) => {
+    if (pointerId !== undefined) {
+      svgRef.current?.releasePointerCapture?.(pointerId)
+    }
+    setDraggedNode(null)
+  }, [])
+
+  const handlePointerMove = useCallback((event: React.PointerEvent<SVGSVGElement>) => {
+    if (!draggedNode) return
+    const coords = getSvgCoordinates(event.clientX, event.clientY)
+    if (!coords) return
+    const nextX = coords.x - draggedNode.offsetX
+    const nextY = coords.y - draggedNode.offsetY
+    onNodePositionChange?.(draggedNode.id, { x: nextX, y: nextY })
+  }, [draggedNode, getSvgCoordinates, onNodePositionChange])
+
+  const handlePointerUp = useCallback((event: React.PointerEvent<SVGSVGElement>) => {
+    if (!draggedNode) return
+    event.preventDefault()
+    finishDrag(draggedNode.pointerId)
+  }, [draggedNode, finishDrag])
+
+  const handlePointerLeave = useCallback((event: React.PointerEvent<SVGSVGElement>) => {
+    if (!draggedNode) return
+    if (event.buttons !== 0) return
+    finishDrag(draggedNode.pointerId)
+  }, [draggedNode, finishDrag])
+
+  const handlePointerCancel = useCallback(() => {
+    if (!draggedNode) return
+    finishDrag(draggedNode.pointerId)
+  }, [draggedNode, finishDrag])
+
   return (
     <div className="relative h-full min-h-[24rem] sm:min-h-[28rem] lg:min-h-[34rem]">
       {finalPath && finalPath.length > 1 && (
@@ -57,10 +128,15 @@ function GraphCanvas({ nodes, edges, finalPath }: Props) {
         </button>
       )}
       <svg
+        ref={svgRef}
         className="w-full h-full max-w-full"
         viewBox="0 0 900 520"
         preserveAspectRatio="xMidYMid meet"
         style={{ background: 'radial-gradient(circle at 20% 20%, rgba(122,161,86,0.12), transparent 55%)' }}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
+        onPointerLeave={handlePointerLeave}
       >
         <defs>
           <linearGradient id="edgeHighlight" x1="0" y1="0" x2="1" y2="1">
@@ -98,7 +174,12 @@ function GraphCanvas({ nodes, edges, finalPath }: Props) {
 
         {/* nodes */}
         {nodes.map(n => (
-          <g key={n.id} transform={`translate(${n.x - 20}, ${n.y - 20})`}>
+          <g
+            key={n.id}
+            transform={`translate(${n.x - 20}, ${n.y - 20})`}
+            onPointerDown={event => handlePointerDown(event, n)}
+            className="cursor-grab active:cursor-grabbing"
+          >
             <rect width={40} height={40} rx={20} fill="url(#nodeGradient)" stroke="rgba(255,255,255,0.12)" strokeWidth={2} />
             <text x={20} y={26} fontSize={14} fill="#f8fafc" textAnchor="middle">{n.id}</text>
           </g>
