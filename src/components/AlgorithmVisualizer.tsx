@@ -64,16 +64,43 @@ function AlgorithmVisualizer({ isOpen, onClose, trace, finalPath }: Props) {
             {trace.length === 0 && (
               <div className="p-6 text-sm text-slate-300/80">No simulation run yet.</div>
             )}
-            {trace.map((entry, idx) => (
-              <div key={idx} className="p-5 border-b border-white/5 last:border-0">
-                <div className="text-xs uppercase tracking-widest text-slate-400 mb-2">
-                  {entry.step}
+            {trace.map((entry, idx) => {
+              const distances = Object.entries(entry.dist).sort((a, b) => a[0].localeCompare(b[0]))
+              return (
+                <div key={idx} className="p-5 border-b border-white/5 last:border-0">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="text-xs uppercase tracking-widest text-slate-400">
+                      {entry.step}
+                    </div>
+                    {entry.edge && (
+                      <div className="text-[11px] font-semibold text-sky-300/80">
+                        Edge: {entry.edge[0]} → {entry.edge[1]}
+                      </div>
+                    )}
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full border-separate border-spacing-y-1 text-xs text-left">
+                      <thead>
+                        <tr className="text-slate-300">
+                          <th className="px-3 py-2 font-semibold bg-slate-800/60 rounded-l-lg border border-white/10">Router</th>
+                          <th className="px-3 py-2 font-semibold bg-slate-800/60 rounded-r-lg border border-white/10">Distance</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {distances.map(([node, value]) => (
+                          <tr key={node} className="text-slate-200">
+                            <td className="px-3 py-1.5 bg-slate-900/70 border border-white/10 rounded-l-md">{node}</td>
+                            <td className="px-3 py-1.5 bg-slate-900/70 border border-white/10 rounded-r-md">
+                              {Number.isFinite(value) ? value : '∞'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-                <pre className="text-xs bg-slate-900/80 border border-white/10 rounded-xl p-4 whitespace-pre-wrap text-slate-200 shadow-inner">
-                  {JSON.stringify(entry.dist, null, 2)}
-                </pre>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       </div>

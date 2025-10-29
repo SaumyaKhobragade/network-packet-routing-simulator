@@ -150,7 +150,7 @@ export default function Page() {
   const handleCloseVisualizer = useCallback(() => setShowVisualizer(false), [])
 
   return (
-    <div className="flex-1 flex flex-col h-full text-slate-100">
+    <div className="flex min-h-screen flex-col text-slate-100">
       <Topbar algorithm={algorithm} setAlgorithm={setAlgorithm} />
 
       <div className="flex flex-col gap-6 p-4 sm:p-6 w-full max-w-7xl mx-auto lg:flex-row">
@@ -174,6 +174,17 @@ export default function Page() {
           </div>
         </div>
       </div>
+
+      <footer className="mt-auto w-full border-t border-white/10 bg-slate-950/70">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-2 px-4 py-6 text-center text-sm text-slate-300 sm:px-6">
+          <div className="text-base font-semibold text-slate-100">
+            Made for Design and Analysis of Algorithms Lab Final Project
+          </div>
+          <div className="text-sm leading-relaxed text-slate-300/90">
+            Team Members: Saumya Khobragade (Roll No: A2-B1-14), S. A. Balaji (Roll No: A2-B3-35) and Priyanshu Yadav (Roll No: A2-B3-39)
+          </div>
+        </div>
+      </footer>
 
       <AlgorithmVisualizer
         isOpen={showVisualizer}
